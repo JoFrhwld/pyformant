@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "pyformant"
+version = "0.1.0"
+description = "Formant tracking with python only dependencies"
+authors = ["Josef Fruehwald"]
+license = "GPL-3-only"
+
+[tool.poetry.dependencies]
+python = ">=3.10,<3.11"
+librosa = "0.9.2"
+scipy = "^1.8.1"
+llvmlite = "0.38.1"
+numba = "0.55.2"
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

@@ -1,0 +1,11 @@
+name: pyformant
+
+channels:
+  - default
+  - conda-forge
+  - numba
+
+dependencies:
+  - python=3.9
+  - poetry
+  
