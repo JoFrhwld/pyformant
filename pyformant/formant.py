@@ -200,7 +200,7 @@ class VowelLike:
         self.wav = None
 
         if self.path is not None:
-            self.wav = self.load(self.path)
+            self.load(self.path)
 
     def __repr__(self):
         info_message = ""
