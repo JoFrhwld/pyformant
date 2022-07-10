@@ -172,12 +172,71 @@ def filter_formant1d(formants: np.ndarray,
 def filter_formants(formants: np.ndarray,
                     bandwidths: np.ndarray,
                     formant_floor: float = 90,
-                    bandwidth_cieling = 400):
+                    bandwidth_ceiling = 400):
     """
     filter and sort formants
     """
 
-    formants[~((formants > formant_floor) & (bandwidths < bandwidth_cieling))] = None
+    formants[~((formants > formant_floor) & (bandwidths < bandwidth_ceiling))] = None
     bandwidths[np.isnan(formants)] = None
 
     return(formants, bandwidths)
+
+
+class VowelLike:
+    """
+        Wrapping it all up
+    """
+    def __init__(self,
+                 path: str = None,
+                 load_sr: int = None,
+                 start_s: float = 0.0,
+                 end_s: float = None):
+
+        self.path = path
+        self.load_sr = load_sr
+        self.start_s = start_s
+        self.end_s = end_s
+        self.wav = None
+
+        if self.path is not None:
+            self.wav = self.load(self.path)
+
+    def __repr__(self):
+        info_message = ""
+        if self.wav is not None:
+            nsamp = self.wav.shape[0]
+            sr = self.load_sr
+            dur = self.dur
+            info_message += f"file with {nsamp} samples at {sr} sampling rate ({dur} seconds)\n"
+        else:
+            info_message += "No wav file loaded\n"
+        return(info_message)
+
+    def load(self, 
+             path: str = None,
+             load_sr: float = None,
+             start_s: float = None,
+             end_s: float = None):
+        """
+        
+        """
+
+        args = locals()
+        for k in args:
+            if args[k] is None:
+                args[k] = self.__dict__[k]
+            else:
+                setattr(self, k, args[k])
+        
+
+        if self.load_sr is None:
+            self.load_sr = librosa.get_samplerate(self.path)
+        if self.end_s is not None:
+            self.dur = self.end_s - self.start_s
+        else:
+            self.end_s = librosa.get_duration(filename=self.path)
+            self.dur = self.end_s - self.start_s
+
+        sr = self.load_sr
+        self.wav, _= librosa.load(path, sr=sr, offset=self.start_s, duration=self.dur)        
