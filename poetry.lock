@@ -142,7 +142,12 @@ optional = false
 python-versions = ">=3.8"
 
 [package.dependencies]
-numpy = {version = ">=1.21.0", markers = "python_version >= \"3.10\""}
+numpy = [
+    {version = ">=1.18.5", markers = "platform_machine != \"aarch64\" and platform_machine != \"arm64\" and python_version < \"3.10\""},
+    {version = ">=1.19.2", markers = "platform_machine == \"aarch64\" and python_version < \"3.10\""},
+    {version = ">=1.20.0", markers = "platform_machine == \"arm64\" and python_version < \"3.10\""},
+    {version = ">=1.21.0", markers = "python_version >= \"3.10\""},
+]
 python-dateutil = ">=2.8.1"
 pytz = ">=2020.1"
 
@@ -316,8 +321,8 @@ socks = ["PySocks (>=1.5.6,!=1.5.7,<2.0)"]
 
 [metadata]
 lock-version = "1.1"
-python-versions = ">=3.10,<3.11"
-content-hash = "89daccc728038b01bbec4c71df73f45796dd4686bc6d520ec3e0b6ca52e6aeed"
+python-versions = ">=3.9,<3.11"
+content-hash = "219bd623463461deb1c1d77ee64f14b8d8b0a3bc0a8b98199eb81826c5dd6bb1"
 
 [metadata.files]
 appdirs = []
