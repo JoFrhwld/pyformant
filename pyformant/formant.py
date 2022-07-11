@@ -5,7 +5,6 @@ import pandas as pd
 ## PRAAT CONSTANTS
 WINDOW_MULT = 2
 KAISER_COEF = 20.24
-CORES = mp.cpu_count()
 
 ### These functions subject to change to approximate Praat
 def praat2librosa(time_step: float         = 0.01,
@@ -261,6 +260,10 @@ class VowelLike:
         if self.n_formants is not None:
             info_message += "LPCs"
             info_message += f"\t- LPC order {self.order} to get {self.n_formants} formants\n"
+            if self.formant_floor is not None:
+                info_message += f"\t- formant_floor set to {self.formant_floor:.1f}\n"
+            if self.bandwidth_ceiling is not None:
+                info_message += f"\t- bandwidth_ceiling set to {self.bandwidth_ceiling:.1f}\n"
         else:
             info_message += "No LPC settings"
 
