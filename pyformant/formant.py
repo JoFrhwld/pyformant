@@ -216,19 +216,18 @@ class VowelLike:
                  bandwidth_ceiling: float = 400
                  ):
 
-        for k in locals():
-            setattr(self, k, None)
         self.harmonize_args(locals())
 
-        if self.path is not None:
+        if self.path:
             self.load(self.path)
-        elif self.wav is not None:
-            if self.load_sr is None:
-                raise SamplingRateException("wav provided with no sampling rate")           
-            self.end_s = self.wav.shape[0]/self.load_sr
+        elif self.wav:
+            try:
+                self.end_s = self.wav.shape[0]/self.load_sr
+            except TypeError as e:
+                raise e from SamplingRateException("wav provided with no sampling rate")
             self.dur = self.end_s 
 
-        if self.preemph is not None:
+        if self.preemph:
             if self.preemph > 1:
                 print("preemph > 1, did you mean to set praat_preemph with a Hz like value?")
         else:
@@ -237,7 +236,25 @@ class VowelLike:
         
 
     def __repr__(self):
+        """ 
+        The following code suggests that you actually want two more classes:
+            * WavObject
+            * LPC
+        By using more classes you can further modularize these calls and make
+        the code more maintainable. 
+
+        You have two complex conditionals that have almost nothing to do with
+        each other; they're two different objects. While they're linked, that
+        interface shouls be specified explicitly (through class interactions) 
+        rather than implicitly (through a unified namespace access).
+
+        In the long run it will help because you won't have their internals
+        mixing together like they do here. You can call repr(WavObject) and 
+        repr(LPC) and be done without needing to worry about whether your
+        conditionals interacted in an unexpected way.
+        """
         info_message = "audio:"
+        # def WavObject.__repr__(self):
         if self.wav is not None:
             if self.path is not None:
                 info_message += f"\t- loaded from path {self.path}\n"
@@ -257,6 +274,7 @@ class VowelLike:
                  info_message += f"\t- split into {self.wav_framed.shape[1]} frames {self.window_len_s} s long with {self.step_size_s} s step size\n"
         else:
             info_message += "No wav file loaded\n"
+        # def LPC.__repr__(self):
         if self.n_formants is not None:
             info_message += "LPCs"
             info_message += f"\t- LPC order {self.order} to get {self.n_formants} formants\n"
@@ -266,7 +284,7 @@ class VowelLike:
                 info_message += f"\t- bandwidth_ceiling set to {self.bandwidth_ceiling:.1f}\n"
         else:
             info_message += "No LPC settings"
-
+        # return("audio: "+repr(WavObject)+"\n"+repr(LPC)) <<< that would be this whole function if you handled the above with classes
         return(info_message)
 
     def harmonize_args(self, args):
@@ -311,17 +329,14 @@ class VowelLike:
         """
             resample to 2x nyquist frequency
         """
-
-        if self.wav is not None:
-            if self.target_sr is not None:
-                if self.target_sr < self.load_sr:
-                    return(librosa.resample(self.wav, orig_sr=self.load_sr, target_sr = self.target_sr))
-                else:
-                    raise SamplingRateException("loaded sampling rate too low for given max_formant")
-            else:
-                return(None)
-        else:
-            return(None)
+        if not self.wav:
+            return
+        if not self.target_sr:
+            return
+        if self.target_sr >= self.load_sr:
+            raise SamplingRateException("loaded sampling rate too low for given max_formant")
+        
+        return(librosa.resample(self.wav, orig_sr=self.load_sr, target_sr = self.target_sr))
     
     @property
     def wav_preemph(self):
@@ -329,11 +344,10 @@ class VowelLike:
             add preemphasis
         """
 
-        if self.wav_r is not None and \
-           self.preemph is not None:
-             return(librosa.effects.preemphasis(self.wav_r, coef = self.preemph))
-        else:
-            rerturn(None)
+        if not self.wav_r or not self.preemph:
+            return
+        
+        return(librosa.effects.preemphasis(self.wav_r, coef = self.preemph))
 
     
     @property
@@ -341,62 +355,69 @@ class VowelLike:
         """
         get window length in frames
         """
-        if self.window_len_s is not None and \
-           self.target_sr is not None:
-             return(int(self.window_len_s * self.target_sr))
-        else:
-            return(None)
+        if not self.window_len_s or not self.target_sr:
+            return
+        
+        return(int(self.window_len_s * self.target_sr))
     
     @property
     def hop_length(self):
         """
         get hop length
         """
-        if self.step_size_s is not None and\
-           self.target_sr is not None:
-             return(int(self.step_size_s * self.target_sr))
-        else:
-            return(None)
+        if not self.step_size_s or not self.target_sr:
+            return
+        
+        return(int(self.step_size_s * self.target_sr))
     
     @property
     def wav_framed(self):
         """
          split wav_preemph into analysis frames
         """
-        if self.wav_preemph is not None and \
-           self.frame_length is not None and \
-           self.hop_length is not None:
-             return(librosa.util.frame(self.wav_preemph, 
-                                       frame_length=self.frame_length, 
-                                       hop_length=self.hop_length))
+        if self.wav_preemph and self.frame_length and self.hop_length:
+            return(
+                    librosa.util.frame(
+                        self.wav_preemph, 
+                        frame_length=self.frame_length,
+                        hop_length=self.hop_length
+                    )
+                )
         else:
-            return(None)
+            return
     
     @property
     def window_array(self):
         """
         get window function
         """
-        if self.window is not None:
-            if self.window == "praat":
-                return(praat_window(frame_length=self.frame_length))
-            else:
-                return(librosa.filters.get_window(window = self.window, 
-                                                  Nx = self.frame_length))
+        if not self.window:
+            return
+        if self.window == "praat":
+            return(praat_window(frame_length=self.frame_length))
         else:
-            return(None)
+            return(
+                    librosa.filters.get_window(
+                        window = self.window, 
+                        Nx = self.frame_length
+                    )
+                )
 
     @property
     def frame_time(self):
         """
         return frame times
         """
-
-        if self.wav_framed is not None:
-            halfpoint = ((self.frame_length-1)/2)/self.target_sr
-            return(librosa.frames_to_time(range(self.wav_framed.shape[1]), 
-                                          sr = self.target_sr, 
-                                          hop_length=self.hop_length) + halfpoint)
+        if not self.wav_framed:
+            return
+        halfpoint = ((self.frame_length-1)/2)/self.target_sr
+        return(
+                librosa.frames_to_time(
+                    range(self.wav_framed.shape[1]), 
+                    sr = self.target_sr, 
+                    hop_length=self.hop_length
+                ) + halfpoint
+            )
     
     @property
     def wav_windowed(self):
@@ -415,6 +436,8 @@ class VowelLike:
         """
         if self.n_formants is not None:
             if (self.n_formants * 2) % 1 != 0:
+                # Why not just n_formants % 1 == 0? Under this conditional, n_formant = 1.5
+                # would be valid, is that desired?
                 raise OrderException("n_formant*2 must be whole number")
             else:
                 return(int(self.n_formants * 2))
@@ -495,6 +518,7 @@ class VowelLike:
         """
         if self.frequencies is not None:
             out_freq = self.frequencies
+            # This should be documented inline; not clear why bitwise not is used
             out_freq[~(self.frequencies > self.formant_floor)] = None
             out_freq[~(self.bws < self.bandwidth_ceiling)] = None
             return(out_freq)
